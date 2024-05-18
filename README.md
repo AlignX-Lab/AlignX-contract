@@ -58,7 +58,7 @@ OWNER_ADDRESS=
 
 ```shell
 source .env
-forge create --rpc-url $SEPOLIA_RPC_URL  --private-key $PRIVATE_KEY  src\Xcontract.sol:Xcontract --constructor-args "$OWNER_ADDRESS" "$REWARD_TOKEN_ADDRESS"
+forge create --rpc-url $SEPOLIA_RPC_URL  --private-key $PRIVATE_KEY  src/Xcontract.sol:Xcontract --constructor-args "$OWNER_ADDRESS" "$REWARD_TOKEN_ADDRESS"
 ```
 
 ### Cast

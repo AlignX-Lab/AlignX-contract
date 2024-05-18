@@ -5,7 +5,6 @@ import {Script, console} from "forge-std/Script.sol";
 import "../src/Xcontract.sol";
 
 contract XContractScript is Script {
-    
     Xcontract xContract;
     address owner;
     address rewardToken;
@@ -18,6 +17,6 @@ contract XContractScript is Script {
         rewardToken = address(0);
         xContract = new Xcontract(owner, rewardToken);
 
-        vm.stopBroadcast();    
+        vm.stopBroadcast();
     }
 }

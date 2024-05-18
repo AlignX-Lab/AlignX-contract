@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Xcontract is Ownable {
     // uint256 topicId -> uint256 sceneId -> uint256[] scenarioId
@@ -22,12 +23,14 @@ contract Xcontract is Ownable {
     /// @dev called by user per topic per scene basis
     /// @param dataIDs_ dataIDs to vote for
     /// @param votes_ votes (0|1) for the dataIDs
-    function castVote(address userID_, uint256[] calldata dataIDs_, uint256[] calldata votes_)
+    function castVote(address userID_, uint256[] calldata dataIDs_, uint256[] calldata votes_, uint256 stack_)
         external
     {
         require(dataIDs_.length == votes_.length, "Xcontract: dataIDs and votes length mismatch");
         // try to stack rewardToken to this contract
-        // TODO
+        IERC20 token = IERC20(rewardToken);
+        require(tx.origin == userID_, "Xcontract: only user can cast vote");
+        token.transferFrom(userID_, address(this), stack_);
         for (uint256 i = 0; i < dataIDs_.length; i++) {
             data2Lable[userID_][dataIDs_[i]] = votes_[i];
             users.push(userID_);
@@ -35,15 +38,25 @@ contract Xcontract is Ownable {
     }
 
     /// @notice submit data2Lable to train
-    /// @dev called by timer (maybe with chainlink Automation). Maybe implemented with Chainlink Function
-    function submitData2Train() external {
-        // TODO
+    /// @dev called by backend training server
+    function fetchData2Train() 
+        external view 
+        returns (mapping(address => mapping(uint256 => uint256)) memory){
+        return data2Lable;
     }
 
-    /// @notice user clain reward 
+    /// @notice user clain reward
     /// @dev called by user
     function claimReward() external {
-        // TODO
+        uint256 sum = 0;
+        for (uint256 i = 0; i < users.length; i++) {
+            sum += user2TotalScore[users[i]];
+        }
+        uint256 balance = IERC20(rewardToken).balanceOf(address(this));
+        uint256 userReward = user2TotalScore[msg.sender]*balance/sum;
+        IERC20 token = IERC20(rewardToken);
+        require(tx.origin == userID_, "Xcontract: only user can cast vote");
+        token.transferFrom(address(this), userID_, userReward);
     }
 
     /// @notice put model score and compute Softmax with data2Lable to get User dividend ratio
