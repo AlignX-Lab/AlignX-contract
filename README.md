@@ -47,8 +47,18 @@ $ anvil
 
 ### Deploy
 
+create a `.env` as follow:
+
+```txt
+SEPOLIA_RPC_URL=wss://ethereum-sepolia-rpc.publicnode.com
+PRIVATE_KEY=
+REWARD_TOKEN_ADDRESS=
+OWNER_ADDRESS=
+```
+
 ```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+source .env
+forge create --rpc-url $SEPOLIA_RPC_URL  --private-key $PRIVATE_KEY  src\Xcontract.sol:Xcontract --constructor-args "$OWNER_ADDRESS" "$REWARD_TOKEN_ADDRESS"
 ```
 
 ### Cast
