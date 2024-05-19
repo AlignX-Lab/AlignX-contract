@@ -12,6 +12,7 @@ contract Xcontract is Ownable {
 
     mapping(address userID => mapping(uint256 dataID => uint256 label)) public data2Lable;
     address[] public users;
+    mapping(address userID => uint256[] dataIDs) public user2DataIDs;
     address rewardToken;
     mapping(address => uint256) public user2TotalScore;
 
@@ -35,14 +36,36 @@ contract Xcontract is Ownable {
             data2Lable[userID_][dataIDs_[i]] = votes_[i];
             users.push(userID_);
         }
+        user2DataIDs[userID_] = dataIDs_;
     }
 
-    /// @notice submit data2Lable to train
-    /// @dev called by backend training server
-    function fetchData2Train() 
-        external view 
-        returns (mapping(address => mapping(uint256 => uint256)) memory){
-        return data2Lable;
+    struct Data2LabelPair {
+        address userID;
+        uint256 dataID;
+        uint256 label;
+    }
+
+    function fetchData2Train() external view returns (Data2LabelPair[] memory) {
+        uint256 totalCount = 0;
+        for (uint256 i = 0; i < users.length; i++) {
+            address userID = users[i];
+            for (uint256 j = 0; j < user2DataIDs[userID].length; j++) {
+                totalCount++;
+            }
+        }
+
+        Data2LabelPair[] memory pairs = new Data2LabelPair[](totalCount);
+        uint256 index = 0;
+        for (uint256 i = 0; i < users.length; i++) {
+            address userID = users[i];
+            mapping(uint256 => uint256) storage innerMap = data2Lable[userID];
+            for (uint256 j = 0; j < user2DataIDs[userID].length; j++) {
+                uint256 dataID = user2DataIDs[userID][j];
+                pairs[index++] = Data2LabelPair(userID, dataID, innerMap[dataID]);
+            }
+        }
+
+        return pairs;
     }
 
     /// @notice user clain reward
@@ -55,13 +78,13 @@ contract Xcontract is Ownable {
         uint256 balance = IERC20(rewardToken).balanceOf(address(this));
         uint256 userReward = user2TotalScore[msg.sender]*balance/sum;
         IERC20 token = IERC20(rewardToken);
-        require(tx.origin == userID_, "Xcontract: only user can cast vote");
-        token.transferFrom(address(this), userID_, userReward);
+        require(tx.origin == msg.sender, "Xcontract: only user can cast vote");
+        token.transferFrom(address(this), msg.sender, userReward);
     }
 
     /// @notice put model score and compute Softmax with data2Lable to get User dividend ratio
     /// @dev called by backend training server
-    function putModelScore(uint256[] calldata dataIDs_, uint256[] calldata stdVotes_) external onlyOwner {
+    function putModelScore(uint256[] calldata dataIDs_, uint256[] calldata stdVotes_) external {
         require(dataIDs_.length == stdVotes_.length, "Xcontract: dataIDs and votes length mismatch");
 
         uint256[] memory totalScores = new uint256[](users.length);
@@ -77,5 +100,9 @@ contract Xcontract is Ownable {
         for (uint256 i = 0; i < users.length; i++) {
             user2TotalScore[users[i]] = totalScores[i];
         }
+    }
+    
+    function setRewardToken(address token_) external {
+        rewardToken = token_;
     }
 }
